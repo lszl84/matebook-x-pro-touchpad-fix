@@ -1,0 +1,10 @@
+[Unit]
+Description=Fix Goodix GXTP7863 touchpad after resume
+After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/touchpad-fix-resume.sh
+
+[Install]
+WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target

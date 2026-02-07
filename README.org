@@ -1,0 +1,93 @@
+#+TITLE: Huawei MateBook X Pro Touchpad Fix
+#+AUTHOR: lszl84
+#+DESCRIPTION: Workaround for erratic touchpad behavior after suspend on Huawei MateBook X Pro
+
+* Problem
+
+The Goodix GXTP7863 touchpad (=27C6:01E0=) connected via I2C HID occasionally
+produces spurious clicks and erratic cursor movements after the laptop resumes
+from suspend. The kernel logs show:
+
+#+begin_example
+i2c_hid_acpi i2c-GXTP7863:00: device returned incorrect report (255 vs 14 expected)
+#+end_example
+
+This is caused by the I2C HID device returning garbage data (=0xFF= bytes)
+instead of valid HID reports after the system wakes up.
+
+* Affected Hardware
+
+- *Laptop:* Huawei MateBook X Pro (VGHH-XX)
+- *Touchpad:* Goodix GXTP7863 (vendor =27C6=, product =01E0=)
+- *Interface:* I2C HID via Intel Designware I2C controller (PCI =00:15.0=)
+- *Driver stack:* =i2c_designware= -> =i2c_hid_acpi= -> =i2c_hid= -> =hid_multitouch=
+
+May also affect other Huawei MateBook models with the same Goodix touchpad.
+
+* Workaround
+
+The fix unbinds and rebinds the I2C HID driver after every resume, forcing the
+touchpad to re-initialize cleanly.
+
+A systemd service runs automatically after suspend/hibernate/hybrid-sleep.
+
+** Manual Fix (One-Time)
+
+If you just want to fix the touchpad right now without installing anything:
+
+#+begin_src bash
+sudo sh -c 'echo "i2c-GXTP7863:00" > /sys/bus/i2c/drivers/i2c_hid_acpi/unbind'
+sleep 2
+sudo sh -c 'echo "i2c-GXTP7863:00" > /sys/bus/i2c/drivers/i2c_hid_acpi/bind'
+#+end_src
+
+* Installation
+
+#+begin_src bash
+git clone https://github.com/lszl84/matebook-x-pro-touchpad-fix.git
+cd matebook-x-pro-touchpad-fix
+sudo ./install-touchpad-fix.sh
+#+end_src
+
+This will:
+1. Install =touchpad-fix-resume.sh= to =/usr/local/bin/=
+2. Install =touchpad-fix-resume.service= to =/etc/systemd/system/=
+3. Enable the service so it runs automatically on every resume
+
+* Verifying It Works
+
+After a suspend/resume cycle:
+
+#+begin_src bash
+systemctl status touchpad-fix-resume.service
+journalctl -u touchpad-fix-resume.service --since "5 minutes ago"
+journalctl -t touchpad-fix
+#+end_src
+
+* Uninstall
+
+#+begin_src bash
+sudo systemctl disable touchpad-fix-resume.service
+sudo rm /etc/systemd/system/touchpad-fix-resume.service
+sudo rm /usr/local/bin/touchpad-fix-resume.sh
+sudo systemctl daemon-reload
+#+end_src
+
+* Files
+
+| File                           | Description                                  |
+|--------------------------------+----------------------------------------------|
+| =touchpad-fix-resume.sh=      | Fix script (unbind/rebind with syslog)       |
+| =touchpad-fix-resume.service= | Systemd oneshot service triggered on resume  |
+| =install-touchpad-fix.sh=     | Installer                                    |
+
+* Tested On
+
+- LMDE 7 (Gigi) / Debian Trixie
+- Kernel 6.12.x
+- libinput 1.28.x
+
+* Related
+
+- [[https://bugzilla.kernel.org/][Linux Kernel Bug Tracker]] (Component: Input Devices)
+- [[https://gitlab.freedesktop.org/libinput/libinput/-/issues][libinput Issue Tracker]]
