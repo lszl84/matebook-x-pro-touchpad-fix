@@ -26,8 +26,10 @@ May also affect other Huawei MateBook models with the same Goodix touchpad.
 
 * Workaround
 
-The fix unbinds and rebinds the I2C HID driver after every resume, forcing the
-touchpad to re-initialize cleanly.
+The fix reloads the =i2c_hid_acpi= kernel module after every resume, forcing
+the touchpad to re-initialize cleanly. After the device reappears, it also
+reapplies libinput settings (natural scrolling, tap-to-click, button areas) in
+the active X session to avoid race conditions with user-space configuration.
 
 A systemd service runs automatically after suspend/hibernate/hybrid-sleep.
 
@@ -36,9 +38,7 @@ A systemd service runs automatically after suspend/hibernate/hybrid-sleep.
 If you just want to fix the touchpad right now without installing anything:
 
 #+begin_src bash
-sudo sh -c 'echo "i2c-GXTP7863:00" > /sys/bus/i2c/drivers/i2c_hid_acpi/unbind'
-sleep 2
-sudo sh -c 'echo "i2c-GXTP7863:00" > /sys/bus/i2c/drivers/i2c_hid_acpi/bind'
+sudo modprobe -r i2c_hid_acpi i2c_hid && sudo modprobe i2c_hid_acpi
 #+end_src
 
 * Installation
@@ -75,11 +75,11 @@ sudo systemctl daemon-reload
 
 * Files
 
-| File                           | Description                                  |
-|--------------------------------+----------------------------------------------|
-| =touchpad-fix-resume.sh=      | Fix script (unbind/rebind with syslog)       |
-| =touchpad-fix-resume.service= | Systemd oneshot service triggered on resume  |
-| =install-touchpad-fix.sh=     | Installer                                    |
+| File                           | Description                                    |
+|--------------------------------+------------------------------------------------|
+| =touchpad-fix-resume.sh=      | Fix script (module reload + libinput settings)  |
+| =touchpad-fix-resume.service= | Systemd oneshot service triggered on resume     |
+| =install-touchpad-fix.sh=     | Installer                                       |
 
 * Tested On
 
