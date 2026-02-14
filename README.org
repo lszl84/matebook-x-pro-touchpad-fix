@@ -27,9 +27,9 @@ May also affect other Huawei MateBook models with the same Goodix touchpad.
 * Workaround
 
 The fix reloads the =i2c_hid_acpi= kernel module after every resume, forcing
-the touchpad to re-initialize cleanly. After the device reappears, it also
-reapplies libinput settings (natural scrolling, tap-to-click, button areas) in
-the active X session to avoid race conditions with user-space configuration.
+the touchpad to re-initialize cleanly. libinput settings (natural scrolling,
+tap-to-click, click method) should be configured separately via
+=/etc/X11/xorg.conf.d/= so they apply automatically to any new device.
 
 A systemd service runs automatically after suspend/hibernate/hybrid-sleep.
 
@@ -77,7 +77,7 @@ sudo systemctl daemon-reload
 
 | File                           | Description                                    |
 |--------------------------------+------------------------------------------------|
-| =touchpad-fix-resume.sh=      | Fix script (module reload + libinput settings)  |
+| =touchpad-fix-resume.sh=      | Fix script (module reload)                      |
 | =touchpad-fix-resume.service= | Systemd oneshot service triggered on resume     |
 | =install-touchpad-fix.sh=     | Installer                                       |
 
