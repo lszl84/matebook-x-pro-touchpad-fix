@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # Installer for MateBook Touchpad Resume Fix
+# Installs, enables, and immediately runs the fix
 #
 
 set -e
@@ -39,21 +40,14 @@ systemctl enable touchpad-fix-resume.service
 echo ""
 echo -e "${GREEN}Installation complete!${NC}"
 echo ""
-echo "The touchpad will now be automatically reset after each resume from suspend."
+
+# Run the fix immediately
+echo "Running touchpad fix now..."
 echo ""
-echo "To test manually:"
-echo "  sudo /usr/local/bin/touchpad-fix-resume.sh"
+/usr/local/bin/touchpad-fix-resume.sh
+
 echo ""
-echo "To check service status:"
-echo "  systemctl status touchpad-fix-resume.service"
-echo ""
-echo "To check logs after resume:"
-echo "  journalctl -t touchpad-fix"
-echo "  journalctl -u touchpad-fix-resume.service"
-echo ""
-echo "To uninstall:"
-echo "  sudo systemctl disable touchpad-fix-resume.service"
-echo "  sudo rm /etc/systemd/system/touchpad-fix-resume.service"
-echo "  sudo rm /usr/local/bin/touchpad-fix-resume.sh"
-echo "  sudo systemctl daemon-reload"
+echo "---"
+echo "Logs:    journalctl -t touchpad-fix"
+echo "Status:  systemctl status touchpad-fix-resume.service"
 echo ""

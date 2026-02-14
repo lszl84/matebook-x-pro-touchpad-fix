@@ -1,10 +1,14 @@
 [Unit]
 Description=Fix Goodix GXTP7863 touchpad after resume
 After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+# Prevent multiple concurrent invocations
+ConditionPathExists=!/run/touchpad-fix.lock
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/touchpad-fix-resume.sh
+# Give enough time for retries + module reload fallback
+TimeoutStartSec=90
 
 [Install]
 WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
