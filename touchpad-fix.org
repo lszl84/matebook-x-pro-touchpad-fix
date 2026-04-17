@@ -1,0 +1,115 @@
+#+TITLE: Huawei MateBook X Pro (VGHH) Touchpad Fix
+#+AUTHOR: Luke
+#+DATE: 2025-04-17
+#+OPTIONS: toc:t
+
+* Problem
+Touchpad not working properly on Huawei MateBook X Pro (VGHH-XX /
+M1010) running Zorin OS (Wayland/GNOME).
+
+Symptoms:
+- Touchpad detected but not functioning correctly
+- Error in journal: "kernel bug: clickpad advertising right button"
+
+* Diagnosis
+
+** System Info
+- Laptop: HUAWEI VGHH-XX (M1010)
+- Touchpad: GXTP7863:00 27C6:01E0 Touchpad (Goodix)
+- OS: Zorin OS (Wayland session)
+- GNOME Shell: 46.0
+- libinput: 1.25.0
+- Kernel: 6.17.0-20-generic
+
+** Checking Touchpad
+#+begin_src bash
+# List input devices
+xinput list
+
+# Check /proc for touchpad
+cat /proc/bus/input/devices | grep -i touchpad
+
+# Check journal for errors
+journalctl --user -b | grep -iE "touchpad|input|libinput"
+#+end_src
+
+** Key Error Found
+#+begin_example
+libinput error: event4 - GXTP7863:00 27C6:01E0 Touchpad: kernel bug: clickpad advertising right button.
+#+end_example
+
+This indicates libinput doesn't know the touchpad is a clickpad (no
+physical buttons).
+
+* Solution
+
+** 1. Check Existing Quirks
+#+begin_src bash
+# libinput quirks are in:
+ls /usr/share/libinput/
+
+# Check existing Huawei quirks
+cat /usr/share/libinput/50-system-huawei.quirks
+#+end_src
+
+Existing quirks only covered MRGF-XX model, not VGHH-XX.
+
+** 2. Create Local Override Quirks
+Create file: ~/touchpad-fix.org (this file)
+
+** 3. Add Quirks File
+#+begin_src bash
+# Create the quirks file
+sudo tee /etc/libinput/local-overrides.quirks << 'EOF'
+[Huawei MateBook VGHH Touchpad]
+MatchName=GXTP7863:00 27C6:01E0 Touchpad
+MatchUdevType=touchpad
+ModelPressurePad=1
+EOF
+#+end_src
+
+** Explanation of Quirks
+- =MatchName=: Matches the touchpad device name
+- =MatchUdevType=touchpad=: Ensures only touchpads are matched (not mice)
+- =ModelPressurePad=1=: Tells libinput this is a clickpad without physical buttons, fixing the right-button bug
+
+** 4. Reload Configuration
+Restart GNOME Shell:
+- Press =Alt+F2=, type =r=, press Enter
+- Or log out and log back in
+
+* Verification
+After restart, touchpad should work with:
+- Tap-to-click enabled
+- Two-finger scroll working
+- Right-click area (bottom-right) working
+
+Check settings in:
+=Settings → Devices → Touchpad=
+
+* References
+- [[https://wayland.freedesktop.org/libinput/doc/1.25.0/clickpad-with-right-button.html][libinput clickpad documentation]]
+- [[https://wayland.freedesktop.org/libinput/doc/1.25.0/quirks.html][libinput quirks documentation]]
+- [[https://bbs.archlinux.org/viewtopic.php?id=301467][Arch Linux thread on Huawei MateBook touchpad]]
+
+* Commands Summary
+#+begin_src bash
+# Diagnose
+xinput list
+cat /proc/bus/input/devices | grep -i touchpad
+journalctl --user -b | grep -i touchpad
+
+# Check DMI info
+cat /sys/class/dmi/id/{sys_vendor,product_name,product_version}
+
+# Check libinput version
+libinput --version
+
+# Apply fix
+sudo tee /etc/libinput/local-overrides.quirks << 'EOF'
+[Huawei MateBook VGHH Touchpad]
+MatchName=GXTP7863:00 27C6:01E0 Touchpad
+MatchUdevType=touchpad
+ModelPressurePad=1
+EOF
+#+end_src
